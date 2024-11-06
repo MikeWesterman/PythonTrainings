@@ -43,7 +43,7 @@ class Schematic:
             while i < len(row):
                 if row[i].isdigit():
                     start_idx = i
-                    while row[i].isdigit() and not i >= len(row):
+                    while not i >= len(row) and row[i].isdigit():
                         i += 1
                         
                     i -= 1
