@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from itertools import chain
 
 @dataclass
 class PartNumber:
@@ -29,7 +30,7 @@ def parse_schematic_row(schematic_row: str = "") -> dict:
         if char.isdigit():
             current_part_number += char
             if i == len(schematic_row) - 1:
-                schematic_entries[EntryType.PART_NUMBER].append(PartNumber(int(current_part_number), i - len(current_part_number), i-1))
+                schematic_entries[EntryType.PART_NUMBER].append(PartNumber(int(current_part_number), i - len(current_part_number) + 1, i))
         else:
             if current_part_number != "":
                 schematic_entries[EntryType.PART_NUMBER].append(PartNumber(int(current_part_number), i - len(current_part_number), i-1))
@@ -45,7 +46,10 @@ def parse_schematic_row(schematic_row: str = "") -> dict:
 def sum_part_numbers(schematic: list[str]) -> int:
     total_sum = 0
     # Initialise row triplets s.t. we will iterate the first row to the center correctly
-    parsed_rows = [parse_schematic_row(), parse_schematic_row(), parse_schematic_row(schematic[0]) if len(schematic) > 0 else {}]
+    parsed_rows = [
+        parse_schematic_row(),
+        parse_schematic_row(),
+        parse_schematic_row(schematic[0]) if len(schematic) > 0 else {}]
 
     for i, row in enumerate(schematic):
         parsed_rows = iterate_parsed_rows(schematic, i, parsed_rows)
@@ -72,8 +76,28 @@ def check_rows_for_adjacent_symbol(part_number: PartNumber, symbol_indices: list
             return True
     return False
 
+def sum_gear_ratios(schematic: list[str]) -> int:
+    total_sum = 0
+    # Initialise row triplets s.t. we will iterate the first row to the center correctly
+    parsed_rows = [
+        parse_schematic_row(),
+        parse_schematic_row(),
+        parse_schematic_row(schematic[0]) if len(schematic) > 0 else {}]
+
+    for i, row in enumerate(schematic):
+        parsed_rows = iterate_parsed_rows(schematic, i, parsed_rows)
+
+        # Check each gear, if it is adjacent to exactly two part numbers, add the product of those part numbers
+        for gear in parsed_rows[1][EntryType.GEAR]:
+            part_numbers_from_adjacent_rows = list(chain(*[parsed_row[EntryType.PART_NUMBER] for parsed_row in parsed_rows]))
+            adjacent_part_numbers = [part_number.value for part_number in part_numbers_from_adjacent_rows if part_number.start_index - 1 <= gear <= part_number.end_index + 1]
+            if len(adjacent_part_numbers) == 2:
+                total_sum += adjacent_part_numbers[0] * adjacent_part_numbers[1]
+
+    return total_sum
 
 if __name__ == "__main__":
     schematic = read_schematic("full_input.txt")
     #schematic = read_schematic("test_input.txt")
-    print(sum_part_numbers(schematic))
+    #print(sum_part_numbers(schematic))
+    print(sum_gear_ratios(schematic))
